@@ -1,67 +1,79 @@
-"use client"
+"use client";
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Navbar from "../components/navbar";
 
-interface League {
-  league: {
+interface Team {
+  position: number;
+  team: {
     id: number;
     name: string;
-    type: string;
-    logo: string;
+    crest: string;
   };
-  country: {
-    name: string;
-  };
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  points: number;
+  goalDifference: number;
 }
 
 const LeaguesPage: React.FC = () => {
-  const [leagues, setLeagues] = useState<League[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLeagues = async () => {
+    const fetchStandings = async () => {
       try {
-        const response = await fetch("/api/leagues");
-        const data = await response.json();
-        if (data.data) {
-          setLeagues(data.data);
+        const response = await fetch("livescores/api/standings"); 
+
+
+        const data = await response.json(); 
+        const standings = data?.standings?.find(
+          (s: any) => s.type === "TOTAL" && s.stage === "REGULAR_SEASON"
+        );
+
+        if (standings && standings.table) {
+          setTeams(standings.table);
         } else {
-          throw new Error("Failed to fetch leagues");
+          throw new Error("Standings no found");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        setError(err instanceof Error ? err.message : "Failed to fetch standings");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLeagues();
+    fetchStandings();
   }, []);
 
-  if (loading) return <p className="text-center text-white">Loading leagues...</p>;
+  if (loading) return <p className="text-center text-white">Loading standings...</p>;
   if (error) return <p className="text-center text-red-500">Error: {error}</p>;
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-6">
       <Navbar />
-      <h1 className="text-2xl font-bold mb-4">Football Leagues</h1>
+      <h1 className="text-2xl font-bold mb-4">Premier League 2021 Standings</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {leagues.map((league) => (
-          <div key={league.league.id} className="bg-gray-800 p-4 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold">{league.league.name}</h2>
-            <p className="text-gray-400">Type: {league.league.type}</p>
-            {league.league.logo && (
+        {teams.map((team) => (
+          <div key={team.team.id} className="bg-gray-800 p-4 rounded-lg shadow-md">
+            <div className="flex items-center gap-4">
               <Image
-                src={league.league.logo}
-                alt={league.league.name}
-                width={50}
-                height={50}
-                className="mt-2"
+                src={team.team.crest}
+                alt={team.team.name}
+                width={40}
+                height={40}
+                className="rounded-full"
               />
-            )}
-            <p className="text-gray-400">Country: {league.country.name || "N/A"}</p>
+              <h2 className="text-lg font-semibold">{team.position}. {team.team.name}</h2>
+            </div>
+            <p className="text-gray-400 mt-2">Played: {team.playedGames}</p>
+            <p className="text-gray-400">Won: {team.won}, Draw: {team.draw}, Lost: {team.lost}</p>
+            <p className="text-gray-300 font-bold mt-2">Points: {team.points}</p>
+            <p className="text-gray-500">Goal Diff: {team.goalDifference}</p>
           </div>
         ))}
       </div>
